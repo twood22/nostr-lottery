@@ -98,33 +98,61 @@ export function LotteryProvider({
     pollingInterval: 30000, // 30 seconds
   });
 
+  // Fetch the lottery note to get its draw_block tag
+  const { data: lotteryNoteEvent } = useQuery({
+    queryKey: ['lottery', 'note', lotteryNoteId],
+    queryFn: async (c) => {
+      if (!lotteryNoteId) return null;
+      const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
+      const events = await nostr.query([{ ids: [lotteryNoteId] }], { signal });
+      return events[0] || null;
+    },
+    enabled: !!lotteryNoteId,
+    staleTime: Infinity, // Note doesn't change
+  });
+
+  // Get draw block from the lottery note, or calculate from current block
+  const targetDrawBlock = lotteryNoteEvent
+    ? parseInt(lotteryNoteEvent.tags.find(([name]) => name === 'draw_block')?.[1] || '0', 10) || null
+    : null;
+
   // Calculate current round info
   const currentRound = currentBlockHeight
     ? (() => {
-        const blocks = calculateLotteryBlocks(currentBlockHeight, config);
+        // If we have a lottery note with a draw block, use that
+        // Otherwise calculate based on current block
+        const drawBlock = targetDrawBlock || (() => {
+          const blocks = calculateLotteryBlocks(currentBlockHeight, config);
+          return blocks.drawBlock;
+        })();
+
+        const salesCloseBlock = drawBlock - config.salesCloseBlocksBeforeDraw;
+        const payoutBlock = drawBlock + config.confirmationsRequired;
+        const startBlock = drawBlock - config.blockCadence;
+
         let status: LotteryStatus = 'pending';
 
-        if (currentBlockHeight >= blocks.payoutBlock) {
+        if (currentBlockHeight >= payoutBlock) {
           status = 'completed';
-        } else if (currentBlockHeight >= blocks.drawBlock + config.confirmationsRequired) {
+        } else if (currentBlockHeight >= drawBlock + config.confirmationsRequired) {
           status = 'paying';
-        } else if (currentBlockHeight >= blocks.drawBlock) {
+        } else if (currentBlockHeight >= drawBlock) {
           status = 'confirming';
-        } else if (currentBlockHeight >= blocks.salesCloseBlock) {
+        } else if (currentBlockHeight >= salesCloseBlock) {
           status = 'closed';
         } else if (lotteryNoteId) {
           status = 'open';
         }
 
         return {
-          id: generateLotteryId(blocks.drawBlock),
-          startBlock: blocks.currentRoundStart,
-          salesCloseBlock: blocks.salesCloseBlock,
-          drawBlock: blocks.drawBlock,
-          payoutBlock: blocks.payoutBlock,
-          blocksUntilSalesClose: blocks.blocksUntilSalesClose,
-          blocksUntilDraw: blocks.blocksUntilDraw,
-          blocksUntilPayout: blocks.blocksUntilPayout,
+          id: generateLotteryId(drawBlock),
+          startBlock,
+          salesCloseBlock,
+          drawBlock,
+          payoutBlock,
+          blocksUntilSalesClose: Math.max(0, salesCloseBlock - currentBlockHeight),
+          blocksUntilDraw: Math.max(0, drawBlock - currentBlockHeight),
+          blocksUntilPayout: Math.max(0, payoutBlock - currentBlockHeight),
           status,
         };
       })()

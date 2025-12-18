@@ -237,9 +237,17 @@ export function LotteryOperatorPanel() {
             <p className="text-sm text-muted-foreground">
               Commit ticket assignments before the draw block (for verifiability).
             </p>
+            {currentRound && currentRound.status !== 'pending' && currentRound.status !== 'open' && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Publishing after sales close reduces verifiability. For testing only.
+                </AlertDescription>
+              </Alert>
+            )}
             <Button
               onClick={handlePublishCommitment}
-              disabled={isCommitting || tickets.length === 0 || !currentRound || currentRound.status !== 'closed'}
+              disabled={isCommitting || tickets.length === 0}
               variant="outline"
               className="w-full"
             >
@@ -265,9 +273,17 @@ export function LotteryOperatorPanel() {
             <p className="text-sm text-muted-foreground">
               Publish the winner once the draw block is mined.
             </p>
+            {!winnerResult && tickets.length > 0 && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Draw block not reached yet or hash not available. Check back after block {currentRound?.drawBlock}.
+                </AlertDescription>
+              </Alert>
+            )}
             <Button
               onClick={handleAnnounceWinner}
-              disabled={isAnnouncing || !winnerResult}
+              disabled={isAnnouncing || !winnerResult || tickets.length === 0}
               variant="outline"
               className="w-full"
             >
@@ -278,7 +294,9 @@ export function LotteryOperatorPanel() {
               )}
               {winnerResult
                 ? `Announce Winner (Ticket #${winnerResult.ticketNumber})`
-                : 'Waiting for draw...'}
+                : tickets.length === 0
+                  ? 'No tickets sold'
+                  : 'Waiting for draw block...'}
             </Button>
           </div>
 
