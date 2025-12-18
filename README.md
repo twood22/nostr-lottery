@@ -1,238 +1,241 @@
-# MKStack
+# ⚡ Lightning Lottery on Nostr
 
-**The Complete Framework for Building Nostr Clients with AI**
+A provably fair lottery system built on Nostr where users buy tickets by zapping a note, and the winner is determined by a Bitcoin block hash. Complete transparency, zero trust required.
 
-MKStack is an AI-powered framework for building Nostr applications with React 18.x, TailwindCSS 3.x, Vite, shadcn/ui, and Nostrify. Build powerful Nostr applications with AI-first development - from social feeds to private messaging, MKStack provides everything you need to create decentralized apps on the Nostr protocol.
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)
+![React](https://img.shields.io/badge/React-18.3-blue)
+![Nostr](https://img.shields.io/badge/Nostr-NIP--57-purple)
+
+## 🎯 Features
+
+- **Provably Fair**: Winner determined by Bitcoin block hash - anyone can verify
+- **Lightning Native**: Buy tickets and receive prizes via Lightning Network
+- **Zero Trust**: Deterministic ticket assignment by payment hash sorting
+- **Configurable**: Adjust block cadence (default: every 100 blocks)
+- **Operator Dashboard**: Complete workflow from announcement to payout
+- **NWC Integration**: Connect Alby wallet for automated prize distribution
+
+## 🎲 How It Works
+
+1. **Operator publishes a lottery note** on Nostr
+2. **Users zap the note** to buy tickets (1 sat = 1 ticket)
+3. **Tickets assigned deterministically** - sorted by payment_hash from zap receipts
+4. **Sales close** 6 blocks before the draw block
+5. **Winner determined** using Bitcoin block hash: `(block_hash % total_tickets) + 1`
+6. **Prize paid** via Lightning to the winner's `lud16` address
+
+### Provable Fairness
+
+The lottery is provably fair because:
+- Ticket assignments are deterministic (sorted by payment_hash)
+- Operator commits ticket list before the draw block is mined
+- Winner selection uses Bitcoin block hash (unpredictable, immutable)
+- Anyone can verify: fetch zap receipts + block hash + re-run calculation
+
+**Verification Formula:**
+```
+winning_ticket = (Bitcoin_block_hash % total_tickets) + 1
+```
 
 ## 🚀 Quick Start
 
-Build your Nostr app in 3 simple steps:
+### Prerequisites
 
-### 1. Install & Create
+- Node.js 18+ and npm
+- A Nostr account (for operators)
+- Alby wallet with NWC (for prize payouts)
+
+### Installation
+
 ```bash
-npm install -g @getstacks/stacks
-stacks mkstack
+# Clone the repository
+git clone https://github.com/twood22/nostr-lottery.git
+cd nostr-lottery
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-### 2. Build with AI
-```bash
-stacks agent
-# Tell Dork AI what you want: "Build a group chat application"
-```
+Visit `http://localhost:5173` to access the operator dashboard.
 
-### 3. Deploy Instantly
-```bash
-npm run deploy
-# ✅ App deployed to NostrDeploy.com!
-```
+### Setup Your Lottery
 
-## ✨ What Makes MKStack Special
+1. **Login** with your Nostr account (the lottery operator npub)
 
-- **🤖 AI-First Development**: Build complete Nostr apps with just one prompt using Dork AI agent
-- **⚡ 8 Minutes Average**: From idea to deployed application in minutes, not months
-- **🔗 50+ NIPs Supported**: Comprehensive Nostr protocol implementation
-- **🎨 Beautiful UI**: 48+ shadcn/ui components with light/dark theme support
-- **🔐 Built-in Security**: NIP-07 browser signing, NIP-44 encryption, event validation
-- **💰 Payments Ready**: Lightning zaps (NIP-57), Cashu wallets (NIP-60), Wallet Connect (NIP-47)
-- **📱 Production Ready**: TypeScript, testing, deployment, and responsive design included
+2. **Connect Wallet**
+   - Go to Alby Hub → Wallet Connections
+   - Create connection with permissions: `pay_invoice`, `list_transactions`
+   - Copy the `nostr+walletconnect://...` URI
+   - Click "Connect Wallet" and paste
 
-## 🛠 Technology Stack
+3. **Publish Lottery Note**
+   - Click "Publish Announcement"
+   - Share the note - users will zap it to buy tickets
 
-- **React 18.x**: Stable version with hooks, concurrent rendering, and improved performance
-- **TailwindCSS 3.x**: Utility-first CSS framework for styling
-- **Vite**: Fast build tool and development server
-- **shadcn/ui**: 48+ unstyled, accessible UI components built with Radix UI
-- **Nostrify**: Nostr protocol framework for Deno and web
-- **React Router**: Client-side routing with BrowserRouter
-- **TanStack Query**: Data fetching, caching, and state management
-- **TypeScript**: Type-safe JavaScript development
+4. **Monitor & Manage**
+   - Watch ticket sales in real-time
+   - Publish commitment before draw block (optional but recommended)
+   - Announce winner after draw block
+   - Send prize via Lightning
 
-## 🎯 Real-World Examples
+## 📖 Architecture
 
-### Built with One Prompt
+### Tech Stack
 
-Each of these applications was created with just a single prompt to Dork AI:
+- **Frontend**: React 18 + TypeScript + TailwindCSS
+- **UI Components**: shadcn/ui (Radix UI + Tailwind)
+- **Nostr**: Nostrify for protocol integration
+- **Lightning**: @getalby/sdk for NWC
+- **Block Data**: mempool.space API
+- **Build**: Vite
+- **Testing**: Vitest + React Testing Library
 
-- **Group Chat Application**: `"Build me a group chat application"`
-  - [Live Demo](https://groupchat-74z9j26wq-mks-projects-1f1254c4.vercel.app/)
-
-- **Decentralized Goodreads**: `"Build a decentralized goodreads alternative. Use OpenLibrary API for book data."`
-  - [Live Demo](https://bookstr123-87phkwjcy-mks-projects-1f1254c4.vercel.app/)
-
-- **Chess Game**: `"Build a chess game with NIP 64"`
-  - [Live Demo](https://chess-l0d7ms7m3-mks-projects-1f1254c4.vercel.app/chess)
-
-### Production Apps
-
-Real Nostr applications built using MKStack:
-
-- **[Chorus](https://chorus.community/)**: Facebook-style groups on Nostr with built-in eCash wallet
-- **[Blobbi](https://www.blobbi.pet/)**: Digital pet companions that live forever on the decentralized web
-- **[Treasures](https://treasures.to/)**: Decentralized geocaching adventure powered by Nostr
-
-[Browse more apps made with MKStack →](https://nostrhub.io/apps/t/mkstack/)
-
-## 🔧 Core Features
-
-### Authentication & Users
-- `LoginArea` component with account switching
-- `useCurrentUser` hook for authentication state
-- `useAuthor` hook for fetching user profiles
-- NIP-07 browser signing support
-- Multi-account management
-
-### Nostr Protocol Support
-- **Social Features**: User profiles (NIP-01), follow lists (NIP-02), reactions (NIP-25), reposts (NIP-18)
-- **Messaging**: Private DMs (NIP-17), public chat (NIP-28), group chat (NIP-29), encryption (NIP-44)
-- **Payments**: Lightning zaps (NIP-57), Cashu wallets (NIP-60), Nutzaps (NIP-61), Wallet Connect (NIP-47)
-- **Content**: Long-form articles (NIP-23), file metadata (NIP-94), live events (NIP-53), calendars (NIP-52)
-
-### Data Management
-- `useNostr` hook for querying and publishing
-- `useNostrPublish` hook with automatic client tagging
-- Event validation and filtering
-- Infinite scroll with TanStack Query
-- Multi-relay support
-
-### UI Components
-- 48+ shadcn/ui components (buttons, forms, dialogs, etc.)
-- `NoteContent` component for rich text rendering
-- `EditProfileForm` for profile management
-- `RelaySelector` for relay switching
-- `CommentsSection` for threaded discussions
-- Light/dark theme system
-
-### Media & Files
-- `useUploadFile` hook with Blossom server integration
-- NIP-94 compatible file metadata
-- Image and video support
-- File attachment to events
-
-### Advanced Features
-- NIP-19 identifier routing (`npub1`, `note1`, `nevent1`, `naddr1`)
-- Cryptographic operations (encryption/decryption)
-- Lightning payments and zaps
-- Real-time event subscriptions
-- Responsive design with mobile support
-
-## 🤖 AI Development with Dork
-
-MKStack includes Dork, a built-in AI agent that understands your codebase and Nostr protocols:
-
-### Supported AI Providers
-
-Configure your AI provider with `stacks configure`:
-
-- **OpenRouter** ([openrouter.ai](https://openrouter.ai/)): Enter your API key from settings
-- **Routstr** ([routstr.com](https://www.routstr.com/)): Use Cashu tokens for payment
-- **PayPerQ** ([ppq.ai](https://ppq.ai/)): OpenAI-compatible API
-
-### How Dork Works
-
-- **Context-Aware**: Understands your entire codebase and project structure
-- **Nostr Expert**: Built-in knowledge of 50+ NIPs and best practices
-- **Instant Implementation**: Makes changes directly to your code following React/TypeScript best practices
-
-Example prompts:
-```bash
-"Add user profiles with avatars and bio"
-"Implement NIP-17 private messaging"
-"Add a dark mode toggle"
-"Create a marketplace with NIP-15"
-```
-
-## 📁 Project Structure
+### Key Components
 
 ```
 src/
-├── components/           # UI components
-│   ├── ui/              # shadcn/ui components (48+ available)
-│   ├── auth/            # Authentication components
-│   └── comments/        # Comment system components
-├── hooks/               # Custom React hooks
-│   ├── useNostr         # Core Nostr integration
-│   ├── useAuthor        # User profile data
-│   ├── useCurrentUser   # Authentication state
-│   ├── useNostrPublish  # Event publishing
-│   ├── useUploadFile    # File uploads
-│   └── useZaps          # Lightning payments
-├── pages/               # Page components
-├── lib/                 # Utility functions
-├── contexts/            # React context providers
-└── test/                # Testing utilities
+├── components/lottery/       # Lottery UI components
+│   ├── LotteryStatus.tsx    # Prize pool, countdown, status
+│   ├── TicketList.tsx       # Ticket assignments with winner highlight
+│   ├── WinnerDisplay.tsx    # Winner info + verification data
+│   └── LotteryOperatorPanel.tsx  # 4-step operator workflow
+├── contexts/
+│   └── LotteryContext.tsx   # Lottery state management
+├── hooks/
+│   ├── useBitcoinBlock.ts   # Bitcoin block height monitoring
+│   └── useLotteryOperations.ts  # Publish notes, send prizes
+└── lib/lottery/
+    ├── types.ts             # Type definitions
+    ├── config.ts            # Configuration & block calculations
+    ├── tickets.ts           # Deterministic ticket assignment
+    ├── winner.ts            # Winner selection algorithm
+    └── payout.ts            # Prize distribution via Lightning
 ```
 
-## 🎨 UI Components
+## 🔧 Configuration
 
-MKStack includes 48+ shadcn/ui components:
+### Block Cadence
 
-**Layout**: Card, Separator, Sheet, Sidebar, ScrollArea, Resizable
-**Navigation**: Breadcrumb, NavigationMenu, Menubar, Tabs, Pagination
-**Forms**: Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch, Slider
-**Feedback**: Alert, AlertDialog, Toast, Progress, Skeleton
-**Overlay**: Dialog, Popover, HoverCard, Tooltip, ContextMenu, DropdownMenu
-**Data Display**: Table, Avatar, Badge, Calendar, Chart, Carousel
-**And many more...
+Adjust how often lotteries run (default: 100 blocks ≈ ~16 hours):
 
-## 🔐 Security & Best Practices
+```typescript
+// In the operator dashboard
+Block Cadence: 100  // Change to any value
+```
 
-- **Never use `any` type**: Always use proper TypeScript types
-- **Event validation**: Filter events through validator functions for custom kinds
-- **Efficient queries**: Minimize separate queries to avoid rate limiting
-- **Proper error handling**: Graceful handling of invalid NIP-19 identifiers
-- **Secure authentication**: Use signer interface, never request private keys directly
+### Advanced Settings
 
-## 📱 Responsive Design
+Edit `src/lib/lottery/config.ts`:
 
-- Mobile-first approach with Tailwind breakpoints
-- `useIsMobile` hook for responsive behavior
-- Touch-friendly interactions
-- Optimized for all screen sizes
+```typescript
+export const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
+  blockCadence: 100,                    // Lottery frequency
+  salesCloseBlocksBeforeDraw: 6,        // When sales close
+  confirmationsRequired: 6,              // Wait before payout
+  minTicketPurchase: 1,                 // Minimum sats per ticket
+  platformFeePercent: 0,                // Platform fee (0-100)
+};
+```
 
 ## 🧪 Testing
 
-- Vitest with jsdom environment
-- React Testing Library with jest-dom matchers
-- `TestApp` component provides all necessary context providers
-- Mocked browser APIs (matchMedia, scrollTo, IntersectionObserver, ResizeObserver)
-
-## 🚀 Deployment
-
-Built-in deployment to NostrDeploy.com:
-
 ```bash
-npm run deploy
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Type check
+npx tsc --noEmit
+
+# Lint
+npx eslint
 ```
 
-Your app goes live instantly with:
-- Automatic builds
-- CDN distribution
-- HTTPS support
-- Custom domains available
+## 📝 Nostr Event Kinds
 
-## 📚 Documentation
+The lottery uses standard Nostr event kinds:
 
-For detailed documentation on building Nostr applications with MKStack:
+- **Kind 1**: Lottery announcements and winner announcements
+- **Kind 9735**: Zap receipts (NIP-57) for ticket purchases
+- **Kind 30078**: Ticket commitment (addressable event)
 
-- [Tutorial](https://soapbox.pub/blog/mkstack-tutorial)
-- [Nostr Protocol Documentation](https://nostr.com)
-- [shadcn/ui Components](https://ui.shadcn.com)
+### Custom Tags
+
+Lottery notes include these tags:
+```json
+[
+  ["t", "nostr-lottery"],
+  ["draw_block", "928400"],
+  ["sales_close_block", "928394"]
+]
+```
+
+## 🔐 Security Considerations
+
+### For Operators
+
+- **Never share your nsec** - use browser extensions (nos2x, Alby, etc.)
+- **NWC connections** are stored locally - clear on logout
+- **Prize wallet** should have limited funds
+- **Commitment publication** proves ticket assignments before randomness
+
+### For Participants
+
+- **Verify independently**: Fetch zap receipts + block hash to confirm winner
+- **Check operator reputation**: Look at past lotteries and payouts
+- **Small amounts**: Start with small ticket purchases until trust is established
 
 ## 🤝 Contributing
 
-MKStack is open source and welcomes contributions. The framework is designed to be:
+Contributions are welcome! Please:
 
-- **Extensible**: Easy to add new NIPs and features
-- **Maintainable**: Clean architecture with TypeScript
-- **Testable**: Comprehensive testing setup included
-- **Documented**: Clear patterns and examples
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Use TypeScript strict mode
+- Follow existing code style (ESLint + Prettier)
+- Add tests for new features
+- Update documentation as needed
 
 ## 📄 License
 
-Open source - build amazing Nostr applications and help grow the decentralized web!
+MIT License - see [LICENSE](LICENSE) file for details
+
+## 🙏 Acknowledgments
+
+- Built with [MKStack](https://soapbox.pub/mkstack) - The complete framework for building Nostr clients
+- Powered by [Nostrify](https://github.com/soapbox-pub/nostrify) for Nostr protocol integration
+- Lightning payments via [Alby SDK](https://github.com/getAlby/js-sdk)
+- Bitcoin block data from [mempool.space](https://mempool.space)
+
+## 🔗 Links
+
+- **Live Demo**: [Coming soon]
+- **Report Issues**: [GitHub Issues](https://github.com/twood22/nostr-lottery/issues)
+- **Nostr**: Find me at `npub1...` (operator)
+
+## 💡 Future Ideas
+
+- [ ] Multiple concurrent lotteries
+- [ ] Recurring automatic lotteries
+- [ ] Custom prize distribution (split between multiple winners)
+- [ ] Integration with Cashu ecash
+- [ ] Mobile app version
+- [ ] Public lottery archive/history page
 
 ---
 
-**"Vibed with MKStack"** - [Learn more about MKStack](https://soapbox.pub/mkstack)
+**Made with ⚡ on Nostr**
 
-*Build your Nostr app in minutes, not months. Start with AI, deploy instantly.*
+*"The code determines the winner, not the operator."*
