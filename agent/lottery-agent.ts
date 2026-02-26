@@ -26,6 +26,7 @@ import { Relay } from 'nostr-tools/relay';
 import { SimplePool } from 'nostr-tools/pool';
 import { hexToBytes, bytesToHex } from '@noble/hashes/utils';
 import { decode as decodeBolt11 } from 'light-bolt11-decoder';
+import { execSync } from 'child_process';
 import type { NostrEvent } from 'nostr-tools/core';
 
 // ── Re-export / inline the portable lottery logic from the existing lib ──
@@ -228,6 +229,120 @@ async function fetchZapReceipts(announcementEventId: string): Promise<NostrEvent
   } finally {
     pool.close(ZAP_QUERY_RELAYS);
   }
+}
+
+// ── Wallet Transaction Cross-Referencing ──
+
+interface WalletTransaction {
+  payment_hash: string;
+  amount: number; // msats
+  settled_at: string;
+  type: string;
+  description?: string;
+}
+
+/**
+ * Fetch incoming wallet transactions from Alby via CLI.
+ * Returns transactions settled between the given Unix timestamps.
+ */
+function fetchWalletTransactions(fromTimestamp: number, toTimestamp: number): WalletTransaction[] {
+  try {
+    const raw = execSync(
+      `npx @getalby/cli list-transactions -c ${NWC_CONNECTION_PATH} --type incoming`,
+      { encoding: 'utf-8', timeout: 30_000, stdio: ['pipe', 'pipe', 'pipe'] }
+    );
+
+    let transactions: any[];
+    try {
+      transactions = JSON.parse(raw);
+    } catch {
+      // CLI might output non-JSON lines before the data
+      const jsonStart = raw.indexOf('[');
+      if (jsonStart === -1) {
+        logError('Wallet transaction response is not valid JSON');
+        return [];
+      }
+      transactions = JSON.parse(raw.slice(jsonStart));
+    }
+
+    // Filter to the lottery time window
+    return transactions.filter((tx: any) => {
+      if (!tx.settled_at) return false;
+      const settledAt = new Date(tx.settled_at).getTime() / 1000;
+      return settledAt >= fromTimestamp && settledAt <= toTimestamp;
+    }).map((tx: any) => ({
+      payment_hash: tx.payment_hash,
+      amount: tx.amount,
+      settled_at: tx.settled_at,
+      type: tx.type,
+      description: tx.description,
+    }));
+  } catch (e: any) {
+    logError(`Failed to fetch wallet transactions: ${e.message}`);
+    return [];
+  }
+}
+
+/**
+ * Cross-reference zap receipts against wallet transactions.
+ * Logs warnings for mismatches but never blocks the draw.
+ */
+function crossReferenceZapsAndWallet(
+  zapReceipts: NostrEvent[],
+  walletTxs: WalletTransaction[],
+  roundId: string
+): { matched: number; zapOnly: string[]; walletOnly: string[] } {
+  // Extract payment hashes from zap receipts
+  const zapPaymentHashes = new Set<string>();
+  for (const zap of zapReceipts) {
+    const bolt11Tag = zap.tags.find(([name]) => name === 'bolt11')?.[1];
+    if (!bolt11Tag) continue;
+    try {
+      const decoded = decodeBolt11(bolt11Tag);
+      const hashSection = decoded.sections.find((s: { name: string }) => s.name === 'payment_hash');
+      if (hashSection && 'value' in hashSection) {
+        zapPaymentHashes.add(hashSection.value as string);
+      }
+    } catch {
+      // skip undecodable bolt11s
+    }
+  }
+
+  const walletPaymentHashes = new Set(walletTxs.map(tx => tx.payment_hash));
+
+  // Find mismatches
+  const zapOnly: string[] = []; // zap receipts with no wallet tx
+  const walletOnly: string[] = []; // wallet txs with no zap receipt
+  let matched = 0;
+
+  for (const hash of zapPaymentHashes) {
+    if (walletPaymentHashes.has(hash)) {
+      matched++;
+    } else {
+      zapOnly.push(hash);
+    }
+  }
+
+  for (const hash of walletPaymentHashes) {
+    if (!zapPaymentHashes.has(hash)) {
+      walletOnly.push(hash);
+    }
+  }
+
+  // Log results
+  log(`  🔍 Cross-reference [${roundId}]: ${matched} matched, ${zapOnly.length} zap-only, ${walletOnly.length} wallet-only`);
+
+  for (const hash of walletOnly) {
+    const tx = walletTxs.find(t => t.payment_hash === hash);
+    const amt = tx ? Math.floor(tx.amount / 1000) : '?';
+    log(`  ⚠️  WARNING: Wallet received payment ${hash.slice(0, 16)}... (${amt} sats) but no matching zap receipt found`);
+  }
+
+  for (const hash of zapOnly) {
+    log(`  ⚠️  WARNING: Zap receipt ${hash.slice(0, 16)}... has no matching wallet transaction`);
+  }
+
+  return { matched, zapOnly, walletOnly };
 }
 
 async function fetchUserMetadata(pubkey: string): Promise<any> {
@@ -541,6 +656,18 @@ async function cmdDraw() {
   log('Draw block reached! Fetching zap receipts...');
   const zapReceipts = await fetchZapReceipts(round.announcementEventId);
   log(`Found ${zapReceipts.length} zap receipts`);
+
+  // Cross-reference with wallet transactions
+  // Use a generous time window: round created_at - 1 hour to now
+  const roundCreatedAt = round.announcementEventId
+    ? Math.floor(Date.now() / 1000) - (round.drawBlock - round.startBlock) * 600 - 3600
+    : Math.floor(Date.now() / 1000) - 86400;
+  const nowTimestamp = Math.floor(Date.now() / 1000) + 3600; // +1hr buffer
+  log('Cross-referencing zap receipts with wallet transactions...');
+  const walletTxs = fetchWalletTransactions(roundCreatedAt, nowTimestamp);
+  if (walletTxs.length > 0 || zapReceipts.length > 0) {
+    crossReferenceZapsAndWallet(zapReceipts, walletTxs, round.id);
+  }
 
   const tickets = buildTicketEntries(zapReceipts, state.config.minTicketPurchase);
   if (tickets.length === 0) {
