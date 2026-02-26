@@ -1,0 +1,64 @@
+{
+  "round": {
+    "id": "lottery-938448",
+    "startBlock": 937453,
+    "salesCloseBlock": 938442,
+    "drawBlock": 938448,
+    "payoutBlock": 938454,
+    "status": "open",
+    "tickets": [
+      {
+        "zapReceipt": {
+          "content": "z a p",
+          "created_at": 1771541728,
+          "id": "f2090dc623029e7dbda4dbe9566ca22c6e2ae7f9e040b3897d43ff088146f3f5",
+          "kind": 9735,
+          "pubkey": "79f00d3f5a19ec806189fcab03c1be4ff81d18ee4f653c88fac41fe03570f432",
+          "sig": "02954d15e4d9342efd95362906848a82f25132799817fc0c0ec134d65e3a7e5236195af2bd3c3da614244f0b26f03a069a6bc8f5e8fe601d075d8ae3988245eb",
+          "tags": [
+            [
+              "p",
+              "17258d58074de20956e4cbefc0be32a4a97d22760e6c10932d58766a3c8dd6e3"
+            ],
+            [
+              "e",
+              "f742532dad53ad99ae9f47f6abd5c3f6f3b74a78a6b5b87318e49b8b29a6e35f"
+            ],
+            [
+              "P",
+              "5b9ef6a36b1bfa9cc4a72469525b4c5a6b63cd8ad545f09a30a7cf6648557b7c"
+            ],
+            [
+              "bolt11",
+              "lnbc2100n1p5e09xhdqg0gsxzgrsnp4qdqu48u5ny2e3u9c5gppdg8r4e7w7grt3askzrqq9yqrt3kwj8anupp5hghzasrk8whp3cl6y02fcye742kt6uy4tak5g8kp80mjtl63wrjqsp56jq5y0z54m8wq9wl6yqzap43skny6mfl78rhc04ymjuqntcakhtq9qyysgqcqpcxqyz5vq72auar3hy0luwmpvwpjsjy3azm4fkq5x06d25k3auw2men4jlyw3uvc3fwsckh3gp493xasgvxae22cjxkmvnzj5nrn679eluelyf8sqva4enj"
+            ],
+            [
+              "preimage",
+              "29580ba4af0d9680462f447126d0f88e14238ca970eb783a43950413b6c2fb2f"
+            ],
+            [
+              "description",
+              "{\"id\":\"e074a36d002aa0d8db2edb53c3c7690ae9583283c29f2a722b3715ea0847f057\",\"pubkey\":\"5b9ef6a36b1bfa9cc4a72469525b4c5a6b63cd8ad545f09a30a7cf6648557b7c\",\"created_at\":1771541718,\"kind\":9734,\"tags\":[[\"p\",\"17258d58074de20956e4cbefc0be32a4a97d22760e6c10932d58766a3c8dd6e3\"],[\"amount\",\"210000\"],[\"e\",\"f742532dad53ad99ae9f47f6abd5c3f6f3b74a78a6b5b87318e49b8b29a6e35f\"],[\"relays\",\"wss://eden.nostr.land\",\"wss://nostr.oxtr.dev\",\"wss://nos.lol\",\"wss://nostr.land\",\"wss://nostr.wine\",\"wss://relay.snort.social\",\"wss://nostr.bitcoiner.social\",\"wss://relay.damus.io\"]],\"content\":\"z a p\",\"sig\":\"26eb36b9ad1211a569e912f44fe0fca53625c314d236cef3e53dbbe9de44829140db161c868b7db41a33272dff45e683c09c78ccacda055969572247f1a6f062\"}"
+            ]
+          ]
+        },
+        "paymentHash": "ba2e2ec0763bae18e3fa23d49c133eaaacbd70955f6d441ec13bf725ff5170e4",
+        "buyerPubkey": "5b9ef6a36b1bfa9cc4a72469525b4c5a6b63cd8ad545f09a30a7cf6648557b7c",
+        "amountSats": 210,
+        "ticketStart": 1,
+        "ticketEnd": 210,
+        "timestamp": 1771541728
+      }
+    ],
+    "totalPrizeSats": 210,
+    "payoutCompleted": false,
+    "announcementEventId": "f742532dad53ad99ae9f47f6abd5c3f6f3b74a78a6b5b87318e49b8b29a6e35f"
+  },
+  "config": {
+    "blockCadence": 1008,
+    "salesCloseBlocksBeforeDraw": 6,
+    "confirmationsRequired": 6,
+    "minTicketPurchase": 1,
+    "platformFeePercent": 0
+  }
+}
