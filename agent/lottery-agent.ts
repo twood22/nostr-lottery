@@ -634,14 +634,55 @@ async function cmdPayout() {
   }
 
   // Fetch winner's lightning address from their Nostr profile
+  const secretKeyBytes = getSecretKeyBytes();
   log(`Fetching lightning address for winner ${round.winnerPubkey.slice(0, 12)}...`);
   const metadata = await fetchUserMetadata(round.winnerPubkey);
   const lud16 = getLightningAddressFromMetadata(metadata);
 
   if (!lud16) {
-    logError(`Winner's profile has no lightning address (lud16). Cannot pay out.`);
+    logError(`Winner's profile has no lightning address (lud16). Cannot pay out automatically.`);
     logError(`Winner pubkey: ${round.winnerPubkey}`);
-    logError(`You may need to manually send ${prize.netPrize} sats to the winner.`);
+    logError(`Publishing notice asking winner to provide a lightning address.`);
+
+    // Publish a Nostr note asking the winner for their lightning address
+    const noLnContent = [
+      `⚡ Payout Notice — Round ${round.id}`,
+      ``,
+      `Congratulations to the winner (nostr:${round.winnerNpub || round.winnerPubkey.slice(0, 12) + '...'})!`,
+      ``,
+      `We're ready to send your ${prize.netPrize} sat prize, but your Nostr profile doesn't have a lightning address (lud16) set.`,
+      ``,
+      `To receive your payout, either:`,
+      `1. Add a lightning address to your Nostr profile, or`,
+      `2. Reply to this note with your lightning address`,
+      ``,
+      `We'll hold your prize until we can deliver it. ⚡`,
+      ``,
+      `#nostr-lottery`,
+    ].join('\n');
+
+    const noLnEvent: UnsignedEvent = {
+      kind: 1,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [
+        ['t', 'nostr-lottery'],
+        ['p', round.winnerPubkey],
+        ...(round.winnerEventId ? [['e', round.winnerEventId]] : []),
+      ],
+      content: noLnContent,
+      pubkey: MY_HEX_PUBKEY,
+    };
+
+    try {
+      const signed = finalizeEvent(noLnEvent, secretKeyBytes);
+      await publishEvent(signed);
+      log(`Published no-LN-address notice: ${signed.id}`);
+    } catch (e: any) {
+      logError(`Failed to publish no-LN-address notice: ${e.message}`);
+    }
+
+    round.status = 'awaiting_ln_address';
+    saveState(state);
     return;
   }
 
